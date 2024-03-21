@@ -1,0 +1,12 @@
+{
+	"name": "2DACE Common Dev Container",
+    "dockerFile": "Dockerfile",
+    "runArgs": ["--network=host"],
+    "extensions": [
+		"ms-vscode.go",
+		"golang.go",
+		"msyrus.go-doc",
+		"766b.go-outliner",
+		"rust-lang.rust"
+	]
+}

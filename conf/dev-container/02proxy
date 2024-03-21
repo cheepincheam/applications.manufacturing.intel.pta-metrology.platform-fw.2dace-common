@@ -1,0 +1,2 @@
+Acquire::http::Proxy "http://proxy-chain.intel.com:911";
+Acquire::https::Proxy "http://proxy-chain.intel.com:912";

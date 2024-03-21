@@ -1,0 +1,25 @@
+{
+   "Level": "information",
+   "Development" : "true",
+   "FileChannelSettings": {
+      "Linux_Path": "/var/atcloud/log/*.log",
+      "Win_Path": "file://localhost/Logs/intelatcloud/*.log",
+      "Win_Rotate_Path" : "C:/Logs/rotate/",
+      "Rotation": "true",
+      "Times": [],
+      "Archive": "number",
+      "Maxsize": "1024",
+      "MaxBackups":"20",
+      "MaxAge": "28",
+      "Compress": true,
+      "Compress_Local_Time":true
+   },
+   "AsynchronousChannelSettings": {
+      "Priority": "normal",
+      "FinishLogUponExit": "True"
+   },
+   "PatternFormatSettings": {
+      "Pattern": "2006-01-02 15:04:05.000",
+      "Time": "local"
+   }
+}

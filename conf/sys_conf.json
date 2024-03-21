@@ -1,0 +1,249 @@
+{
+	"ldap" : {
+		"server_list" : {
+			"amr" : "ATDSAMR402.amr.corp.intel.com,azsamr502.amr.corp.intel.com",
+			"gar" : "AZSGAR401.gar.corp.intel.com"
+		},
+		"port" : "389",
+		"bound_usr" : "amr\\ba_rti_ch_imagexfer",
+		"bound_pwd" : "a0cfc09aed334a288c111d0aa69ac3ca569e9b707826a32e9735cd858c017247fb2664d56e",
+		"mlcloud_ags_entitlement" : [ "0:SuperUser-AssemblyTest_Deep_Learning_Cloud",
+									  "1:User-AssemblyTest_Deep_Learning_Cloud" ]
+	},
+    "pubsub" : {
+        "metadata_broker_list" : "143.182.146.166",
+        "statistics_interval_ms" : "0",
+        "enable_idempotence" : "true",
+        "debug" : "false"
+    },
+    "db" : {
+        "db_technology": "Mongo",
+        "db_settings": {
+            "Mongo": {
+                "config": {
+                    "connString": "mongodb://143.182.146.54:27017",
+                    "db": "cloudjob"
+                }
+            }
+        }
+    },
+    "so" : {
+        "path": "$HOME/projects/atcloud/lib/"
+    },
+  "microservices": {
+    "cloudmgr": {
+      "rpchostUrl": ":40002",
+      "rpcwebhostUrl": ":40001",
+      "restHostUrl": ":40005",
+      "hostname": "",
+      "restClientHost": "atdcpxmlclap.ch.intel.com",
+      "rpcclienthost": "",
+      "rpcwebclienthost": "",
+      "stageEnv": "dev",
+      "multipartFormSize": "2000000000"
+    },
+    "jobstatusbroker": {
+      "id": "1",
+      "wshostUrl": "ccheam-mobl.amr.corp.intel.com:40014",
+      "cert": "c:/Users/ccheam/source/atcloud/cert/ccheam-mobl/mlcloud-websocket-ccheam-mobl.crt",
+      "key": "c:/Users/ccheam/source/atcloud/cert/ccheam-mobl/mlcloud-websocket-ccheam-mobl.open.key"
+    },
+    "jobhandler": {
+      "handlerId": "ccheam-mobl",
+      "debug": "false",
+      "haMode": true,
+      "temporaryRelease": "true",
+      "releaseLocation": "/mnt/stage1/MLCloud/Results"
+    },
+    "jobexecutorsvc": {
+      "restHostUrl": ":40007",
+      "executorDir": "/var/atcloud/execution_env"
+    },
+    "accesscontrol": {
+      "rpchostUrl": ":40009",
+      "objectstorage": {
+        "templates": "/etc/intelatcloud/conf/accesscontrol/templates"
+      },
+      "k8sEnv": true,
+      "k8sSvcEndpoint": "access-ctrl-svc:40009",
+      "rpcClientEndpoint": "localhost:40009"
+    },
+    "dataobjectstorage": {
+      "rpchostUrl": ":40011",
+      "mlvision": {
+        "endpoint": "143.182.146.54:32739",
+        "accessKey": "2LRHIFVA6O1D13F9D6WL",
+        "secretKey": "GOWaLRN5K55LsgtPq5Ez2sCmy6ufnn4D2y5Gm1ED"
+      },
+      "rpcMaxMsgSize": "2147483648",
+      "maxConcurrencyLimit": "64",
+      "k8sEnv": true,
+      "k8sSvcEndpoint": "datamgmt-svc:40011",
+      "rpcClientEndpoint": "143.182.146.54:31851"
+    },
+    "quotasvc": {
+      "rpcwebhostUrl": ":40001",
+      "rpchostUrl": ":40003",
+      "disk": "2000",
+      "CPU": "2",
+      "GPU": "1",
+      "Cache": "4000",
+      "k8sEnv": true,
+      "k8sSvcEndpoint": "resquota-svc:40003",
+      "rpcClientEndpoint": "localhost:40009"
+    },
+    "mlvision": {
+      "rpchostUrl": ":40012",
+      "rpcwebhostUrl": ":40013",
+      "executorDir": "/var/atcloud/execution_env",
+      "mountDrive": {
+        "env": "dev",
+        "atdfile3b/Pathfinding": "/mnt/stage",
+        "atdfile1/vision_metrology": "/mnt/stage1",
+        "atdfile11b/ml_cloud": "/nfs/ml_cloud"
+      }
+    },
+    "deploymentgateway": {
+      "rpchostUrl": ":50052",
+      "rpcwebhostUrl": ":50053"
+    }
+  },
+    "orchestratorclient" : {
+        "METRONOME" : {
+            "rpchostUrl" : "localhost:40003",
+            "metronomeUrl" : "http://143.182.146.144",
+            "restHostUrl" : ":40008",
+            "localIP": "143.182.146.144",
+            "simulation" : false,
+	    "dockerMode" : false,
+	    "jobexeDockerUri" : "localhost:50000/jobexecutor-1"
+        },
+		"INTEL" : {
+			"haMode" : true,
+			"rpchostUrl" : "localhost:40000",
+			"mesosMasterUrl" : "143.182.146.144:5050",
+			"restHostUrl" : ":40006",
+			"localIP" : "143.182.146.144",
+			"zkUrl" : "zk://143.182.146.144:2181/mesos",
+			"simulation" : false,
+			"user" : ""
+		},
+		"K8S" : {
+			"rpchostUrl" : ":40000",
+			"rpcPortName": "job-svc",
+			"contentPortName": "content-svc",
+			"contentHostUrl" : ":40006",
+			"contentHostPublishUrl" : "k8s-jobsvc-svc:40006",
+			"k8sNamespace" : "mlcloud",
+			"inCluster" : true,
+			"k8sServiceName" : "k8s-jobsvc-svc",
+			"kubeConfig" : "/etc/intelatcloud/conf/.kube/config",
+			"fetcherSidecarImage" : "amr-registry-pre.caas.intel.com/mlcloud/fetcher:0.66",
+			"fetcherSidecarCmd" : "fetcher",
+			"appsPVC" : "apps-nfs-pvc",
+			"podSecurityGid" : "1226746",
+			"podSecurityUid" : "20811438",
+			"containerPrivilegeAllow" : true,
+			"containerRegistrySecrets" : ["itcaas-regcred"]
+		}
+	},
+	"repository" : {
+		"gc-setting" : {
+			"frequency_min" : "1440",
+			"retention_hour" : "168" 
+		},
+		"apps-area" : {
+			"podview" : "/appdata",
+			"collectorview" : "/repo/appdata"
+		},
+		"application" : {
+			"lib" : "repository.apprepo.go.so",
+			"master_root" : "/repo/appmaster",
+			"app_root" : "/repo/app",
+			"required" : ["bin", "conf", "template", "models"],				
+			"optional" : [],
+			"intransit_placeholder" : "/var/atcloud/sandbox" 
+		},
+		"image" : {
+			"lib" : "repository.imgrepo.go.so",
+			"master_root" : "",
+			"data_root" : "/repo/img",
+			"required" : ["input", "output"],			
+			"optional" : [],
+			"intransit_placeholder" : "/var/atcloud/sandbox",
+			"supported_formats" : ["bmp", "jpeg", "jpg", "png"]
+		}			
+	},
+	"cluster": {
+		"k8sjobsvc" : {
+			"host_name" : "k8s-jobsvc",
+			"binding_addr" : "0.0.0.0",
+			"binding_port" : "41000",
+			   "advertise_addr" : "0.0.0.0",
+			"advertise_port" : "42000",
+			"peer_addrs" : ["0.0.0.0:41000","0.0.0.0:41001","0.0.0.0:41002"],
+			"exit_timeout_s" : "5",
+			"gossip_settings" : {
+			 "gossipNodes" : "3",
+			 "gossipInterval_ms" : "500",
+			 "coalescePeriod_s" : "3",
+			 "quiscentPeriod_s" : "2",
+			 "userCoalescePeried_s" : "3",
+			 "userQuiscentPeriod_s" : "2",
+			 "pushPullInterval_s" : "30",
+			 "probeTimeout_ms" : "50",
+			 "probeInterval_ms" : "100"
+			},
+			"log_level":"WARN"
+		 },
+		 "atcloudorchestrator" : {
+		   "host_name" : "cloud-orchestrator",
+		   "binding_addr" : "0.0.0.0",
+		   "binding_port" : "41000",
+   		   "advertise_addr" : "0.0.0.0",
+		   "advertise_port" : "42000",
+		   "peer_addrs" : ["0.0.0.0:41000","0.0.0.0:41001","0.0.0.0:41002"],
+		   "exit_timeout_s" : "5",
+		   "gossip_settings" : {
+			"gossipNodes" : "3",
+			"gossipInterval_ms" : "500",
+			"coalescePeriod_s" : "3",
+			"quiscentPeriod_s" : "2",
+			"userCoalescePeried_s" : "3",
+			"userQuiscentPeriod_s" : "2",
+			"pushPullInterval_s" : "30",
+			"probeTimeout_ms" : "50",
+			"probeInterval_ms" : "100"
+		   },
+		   "log_level":"WARN"
+		},
+	    "jobhandler": {
+		   "host_name" : "atdvdrmlclap1",
+		   "binding_addr" : "143.182.146.54",
+		   "binding_port" : "43000",
+		   "advertise_addr" : "0.0.0.0",
+		   "advertise_port" : "44000",
+		   "peer_addrs" : [""],
+		   "exit_timeout_s" : "5",
+		   "k8sEnv": true,
+		   "gossip_settings" : {
+			"gossipNodes" : "3",
+			"gossipInterval_ms" : "500",
+			"coalescePeriod_s" : "3",
+			"quiscentPeriod_s" : "2",
+			"userCoalescePeried_s" : "3",
+			"userQuiscentPeriod_s" : "2",
+			"pushPullInterval_s" : "30",
+			"probeTimeout_ms" : "50",
+			"probeInterval_ms" : "100"
+		   },
+		  "log_level":"WARN"
+		}	
+	},
+	"containerregistry": {
+		"url": "https://amr-registry-pre.caas.intel.com/api/v2.0",
+		"username": "sys_atcloud",
+		"password": "hJW^XVd2s1#Axj*JA@mCJ",
+		"project": "mlcloud"
+	}
+}
