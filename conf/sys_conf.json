@@ -242,8 +242,6 @@
 	},
 	"containerregistry": {
 		"url": "https://amr-registry-pre.caas.intel.com/api/v2.0",
-		"username": "sys_atcloud",
-		"password": "hJW^XVd2s1#Axj*JA@mCJ",
 		"project": "mlcloud"
 	}
 }
