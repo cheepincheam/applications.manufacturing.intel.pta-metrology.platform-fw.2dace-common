@@ -77,4 +77,8 @@ RUN . $HOME/.cargo/env
 # Install etcd-client
 RUN apt install etcd-client globus-gridftp-server-progs globus-gass-copy-progs libglobus-gridftp-server-dev libglobus-common-dev libglobus-gssapi-gsi-dev cmake build-essential pkg-config git autotools-dev autoconf -y
 
+# Install libzmq & golang pebbe/zmq4
+RUN apt-get install libzmq3-dev -y
+RUN go get github.com/pebbe/zmq4
+
 EXPOSE 8000

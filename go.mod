@@ -3,9 +3,10 @@ module 2dacecommon
 go 1.20
 
 require (
-	github.com/confluentinc/confluent-kafka-go v1.9.2
+	github.com/cornelk/hashmap v1.0.8
 	github.com/go-ldap/ldap/v3 v3.4.6
 	github.com/gorilla/websocket v1.5.1
+	github.com/pebbe/zmq4 v1.2.10
 	github.com/rs/cors v1.10.1
 	go.elastic.co/ecszap v1.0.2
 	go.uber.org/zap v1.27.0

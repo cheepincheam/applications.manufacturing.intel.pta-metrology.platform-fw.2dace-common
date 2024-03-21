@@ -11,19 +11,33 @@ package foundationcore
 
 import (
 	"fmt"
-	"strconv"
+	"os"
 	"sync"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	//"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/cornelk/hashmap"
+	zmq "github.com/pebbe/zmq4"
 )
 
+/*
 // Package scoped globals
 var kafkaBrokers string
 var kafkaStatsInterval int
 var kafkaConsumerPollInterval int
 var kafkaDebugEnabled bool
+*/
+const (
+	envZmqBrokerUrlForPublisher = "zmq_broker_url_pub"
+	envZmqBrokerUrlForSubscriber = "zmq_broker_url_sub"
+)
+
+var (
+	zmqBrokerUrlPub string
+	zmqBrokerUrlSub string
+)
 
 // Message type - define an instance message in our pub-sub world
+//
 //	topic - category of the info
 //	payload - content of the info
 type Message struct {
@@ -38,19 +52,27 @@ type MessageHandler struct {
 
 // Consumer type - High level Message Consumption API
 type Consumer struct {
+	/*
 	sub             *kafka.Consumer
 	subMap          map[string]map[*MessageHandler]func(*Message) // key is topic
 	lock            sync.RWMutex
 	listenerStarted bool
 	endSignal       chan bool
 	pollIntervals   int
+	*/
+	sub				*zmq.Socket
+	subMap          *hashmap.Map[string, string] // key is topic
+	lock            sync.RWMutex
+	listenerStarted bool
+	endSignal       chan bool
+	callbk			func(*Message)
 	log             *Logger
 }
 
 // NewConsumer - Create an instance of Consumer object
 func NewConsumer() *Consumer {
 	defer func() {
-		if err := recover(); err !=nil {
+		if err := recover(); err != nil {
 			fmt.Println("Recovering panic in NewConsumer. Error:", err)
 		}
 	}()
@@ -59,6 +81,7 @@ func NewConsumer() *Consumer {
 		fmt.Printf("Error initializing logger : %s", lerr)
 		panic(lerr)
 	}
+	/*
 	c, cerr := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":      kafkaBrokers,
 		"statistics.interval.ms": kafkaStatsInterval,
@@ -67,15 +90,22 @@ func NewConsumer() *Consumer {
 		l.Panic("Error creating kafka consumer : %s", cerr)
 		panic(cerr)
 	}
-	m := make(map[string]map[*MessageHandler]func(*Message))
-	sub := &Consumer{sub: c, subMap: m, endSignal: make(chan bool), pollIntervals: kafkaConsumerPollInterval, log: l}
+	*/
+	var sub *Consumer
+	subSock, _ := zmq.NewSocket(zmq.SUB)
+	if e := subSock.Connect(zmqBrokerUrlSub); e == nil {
+		m := hashmap.New[string,string]()
+		sub = &Consumer{sub: subSock, subMap: m, endSignal: make(chan bool), log: l}	
+	} else {
+		panic(e)
+	}
 	return sub
 }
-
+/*
 // NewConsumerWithGroupID - *LB enabling use case: assigning group id to consumer for 1 to many pub-sub
 func NewConsumerWithGroupID(groupID interface{}) *Consumer {
 	defer func() {
-		if err := recover(); err !=nil {
+		if err := recover(); err != nil {
 			fmt.Println("Recovering panic in NewConsumerWithGroupID. Error:", err)
 		}
 	}()
@@ -96,15 +126,16 @@ func NewConsumerWithGroupID(groupID interface{}) *Consumer {
 	sub := &Consumer{sub: c, subMap: m, endSignal: make(chan bool), pollIntervals: kafkaConsumerPollInterval, log: l}
 	return sub
 }
-
+*/
 // Subscribe - Perform topic subscriptions
-func (o *Consumer) Subscribe(topic string, handler *MessageHandler, callbk func(*Message)) {
+func (o *Consumer) Subscribe(topic string, callbk func(*Message)) {
 	defer func() {
-		if err := recover(); err !=nil {
+		if err := recover(); err != nil {
 			fmt.Println("Recovering panic in Consumer::Subscribe. Error:", err)
 		}
 	}()
-	o.log.Info("Subscribing to %s\n", topic)
+	o.log.Info("Unsubscribing to %s\n", topic)
+	/*
 	if handler != nil {
 		subs, sErr := o.sub.Subscription()
 		if sErr != nil {
@@ -135,11 +166,15 @@ func (o *Consumer) Subscribe(topic string, handler *MessageHandler, callbk func(
 	} else {
 		panic("Null message handler detected !")
 	}
+	*/
+	o.subMap.Set(topic, topic)
+	o.callbk = callbk
 }
 
 // Unsubscribe - Perform topic unsubscriptions
 func (o *Consumer) Unsubscribe(topic string) {
 	o.log.Info("Unsubscribing from %s\n", topic)
+	/*
 	topics, sErr := o.sub.Subscription()
 	succeeded := true
 	if sErr == nil {
@@ -172,6 +207,8 @@ func (o *Consumer) Unsubscribe(topic string) {
 	} else {
 		o.log.Info("Unsubscribe from %s failed.\n", topic)
 	}
+	*/
+	o.subMap.Del(topic)
 }
 
 // consumerCoroutine - Go coroutine that handle kafka consumer poll loops
@@ -185,6 +222,7 @@ func (o *Consumer) consumerCoroutine() {
 				keepRunning = false
 			}
 		default:
+			/*
 			ev := o.sub.Poll(o.pollIntervals)
 			if ev == nil {
 				continue
@@ -200,6 +238,15 @@ func (o *Consumer) consumerCoroutine() {
 				}
 			default:
 			}
+			*/
+			topic, _ := o.sub.Recv(0)
+			msgStr, err := o.sub.Recv(0)
+			if err == nil {
+				o.log.Info("Watch zmq listener recv message %s/%s, forwarding to event handler", topic, msgStr)
+				o.handleMessage(topic, msgStr)
+			} else {
+				o.log.Error("Watch zmq listener fail to recv message %v", err)
+			}
 		}
 	}
 	o.log.Info("Consumer Coroutine exited.\n")
@@ -207,7 +254,8 @@ func (o *Consumer) consumerCoroutine() {
 }
 
 // handleMessage - Helper routine that handles delivery of consumed message to consumers
-func (o *Consumer) handleMessage(topic string, payload []byte) {
+func (o *Consumer) handleMessage(topic string, payload string) {
+	/*
 	if !kafkaDebugEnabled {
 		defer func() {
 			if err := recover(); err != nil {
@@ -221,38 +269,59 @@ func (o *Consumer) handleMessage(topic string, payload []byte) {
 		msg := &Message{Topic: topic, Payload: p}
 		cb(msg)
 	}
+	*/
+	if _, exists := o.subMap.Get(topic); exists {
+		go o.callbk(&Message{
+			Topic: topic,
+			Payload: payload,
+		})
+	}
 }
 
 // Producer - High level Messaging Publishing API
 type Producer struct {
-	pub       *kafka.Producer
-	endSignal chan bool
-	log       *Logger
+	/*
+		pub       *kafka.Producer
+		endSignal chan bool
+	*/
+	pub *zmq.Socket
+	log *Logger
 }
 
 // NewProducer - Create an instance Producer object
 func NewProducer() *Producer {
 	defer func() {
-		if err := recover(); err !=nil {
+		if err := recover(); err != nil {
 			fmt.Println("Recovering panic in NewProducer. Error:", err)
 		}
 	}()
-	p, perr := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers":      kafkaBrokers,
-		"statistics.interval.ms": kafkaStatsInterval})
-	if perr != nil {
-		panic(perr)
-	}
+	/*
+		p, perr := kafka.NewProducer(&kafka.ConfigMap{
+			"bootstrap.servers":      kafkaBrokers,
+			"statistics.interval.ms": kafkaStatsInterval})
+		if perr != nil {
+			panic(perr)
+		}
+	*/
 	l, lerr := NewDefaultLogger()
 	if lerr != nil {
 		panic(lerr)
 	}
+	pubSock, _ := zmq.NewSocket(zmq.PUB)
+	if e:= pubSock.Connect(zmqBrokerUrlPub); e == nil {
+		pub := &Producer{ pub: pubSock, log: l}
+		return pub
+	} else {
+		panic(e)
+	}
+	/*
 	pub := &Producer{pub: p, endSignal: make(chan bool), log: l}
-	return pub
+	*/
 }
 
 // Publish - publish the message
 func (o *Producer) Publish(msg *Message) error {
+	/*
 	err := o.pub.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &msg.Topic, Partition: kafka.PartitionAny},
 		Value:          []byte(msg.Payload),
@@ -261,9 +330,17 @@ func (o *Producer) Publish(msg *Message) error {
 		o.log.Error("publish error -> %s\n", err.Error())
 	}
 	return err
+	*/
+	var e error
+	if _, e = o.pub.Send(msg.Topic, zmq.SNDMORE); e == nil {
+		_, e = o.pub.Send(msg.Payload, 0)
+	}
+	return e
+
 }
 
 func (o *Producer) PublishAndWait(msg *Message, timeoutMs int) error {
+	/*
 	err := o.pub.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &msg.Topic, Partition: kafka.PartitionAny},
 		Value:          []byte(msg.Payload),
@@ -278,29 +355,16 @@ func (o *Producer) PublishAndWait(msg *Message, timeoutMs int) error {
 		return err
 	}
 	return nil
-}
-
-/*
-// Not used unless for debugging purpose
-// deliveryHandler - our delivery handler to track if we have trouble publishing the message
-func (o *Producer) DeliveryHandler() {
-	defer close(o.endSignal)
-	for e := range o.pub.Events() {
-		switch ev := e.(type) {
-		case *kafka.Message:
-			m := ev
-			if m.TopicPartition.Error != nil {
-				o.log.Error("Delivery failed : %v\n", m.TopicPartition.Error)
-			} else {
-				o.log.Info("Delivered message to topic %s [%d] at offset %v\n", *m.TopicPartition.Topic, m.TopicPartition.Partition, m.TopicPartition.Offset)
-			}
-		default:
-		}
+	*/
+	var e error
+	if _, e = o.pub.Send(msg.Topic, zmq.SNDMORE); e == nil {
+		_, e = o.pub.Send(msg.Payload, 0)
 	}
+	return e	
 }
-*/
 
 func init() {
+	/*
 	readObjects := GetSystemConfig().GetConfig(ConfigType_PUBSUB).(map[string]interface{})
 	kafkaBrokers = readObjects["metadata_broker_list"].(string)
 	fmt.Println("kafkaBrokder =", kafkaBrokers)
@@ -312,4 +376,7 @@ func init() {
 	} else {
 		kafkaDebugEnabled = false
 	}
+	*/
+	zmqBrokerUrlPub = os.Getenv(envZmqBrokerUrlForPublisher)
+	zmqBrokerUrlSub = os.Getenv(envZmqBrokerUrlForSubscriber)
 }
